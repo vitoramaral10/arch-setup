@@ -18,6 +18,7 @@ PACMAN=(
   jdk21-openjdk
   # Cowork (máquina virtual) e sandbox do Claude Code
   qemu-system-x86 edk2-ovmf virtiofsd bubblewrap socat gjs
+  docker docker-compose docker-buildx
 )
 
 AUR=(claude-desktop google-chrome flutter-bin android-sdk-cmdline-tools-latest)
@@ -55,9 +56,11 @@ else
   paru -S --needed --noconfirm --skipreview "${AUR[@]}"
 fi
 
-passo "Grupos kvm e flutter, e linger"
-sudo usermod -aG kvm,flutter "$USER"
+passo "Grupos kvm, flutter e docker, linger e Docker"
+sudo usermod -aG kvm,flutter,docker "$USER"
 sudo loginctl enable-linger "$USER"
+# O socket sobe o daemon na primeira chamada do docker, sem pesar no boot.
+sudo systemctl enable --now docker.socket
 
 # --- Shell ----------------------------------------------------------------------
 
@@ -140,7 +143,7 @@ sg flutter -c "flutter config --android-sdk '$SDK' >/dev/null"
 
 passo "Pronto"
 cat <<'EOF'
-Saia e entre de novo na sessão do GNOME, para valerem os grupos kvm e flutter.
+Saia e entre de novo na sessão do GNOME, para valerem os grupos kvm, flutter e docker.
 Depois:
   claude           # login e download dos plugins
   flutter doctor   # tudo deve aparecer com ✓

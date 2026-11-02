@@ -41,6 +41,7 @@ apagar o disco, ele pede o nome do disco digitado por extenso.
 | Etapa | O que faz |
 |---|---|
 | Pacotes | paru, Claude Desktop, Chrome, Codex, LSPs (Go, Python, TypeScript), Node, `jq` |
+| Docker | `docker`, `docker compose` e `buildx`, com o usuário no grupo `docker` |
 | Cowork | QEMU, OVMF, virtiofsd e grupo `kvm` |
 | Claude Code | CLI instalado em `~/.local/bin` |
 | GitHub | `gh` com chave SSH e identidade do git |
