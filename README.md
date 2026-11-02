@@ -50,7 +50,7 @@ apagar o disco, ele pede o nome do disco digitado por extenso.
 | Cowork | QEMU, OVMF, virtiofsd e grupo `kvm` |
 | SSH | `sshd` ligado, com login por senha (root só por chave) e porta 22 com limite de tentativas no `ufw` |
 | Tailscale | `tailscaled` ligado, login pelo link e acesso liberado no `ufw` para a interface `tailscale0` |
-| Claude Code | CLI instalado em `~/.local/bin` |
+| Claude Code | CLI em `~/.local/bin` e serviço `claude-remote-control` (sessões abertas de claude.ai/code ou do celular, sem suspender com a tampa fechada) |
 | GitHub | `gh` com chave SSH e identidade do git |
 | `~/.claude` | clone do repositório de configuração e agendamento do `claude-config-sync` |
 | Flutter | Flutter e SDK do Android em `~/Android/Sdk`, sem o Android Studio |
