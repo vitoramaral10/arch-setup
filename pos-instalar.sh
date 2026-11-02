@@ -136,8 +136,8 @@ if [[ ! -d $SDK/platform-tools ]]; then
   /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root="$SDK" \
     "cmdline-tools;latest" "platform-tools" "platforms;android-36" "build-tools;36.0.0"
 fi
-# O grupo flutter só vale no próximo login; o sg aplica agora.
-sg flutter -c "flutter config --android-sdk '$SDK' >/dev/null"
+# Antes do próximo login o grupo flutter ainda não vale; o flutter-bin cai no unionfs e funciona igual.
+flutter config --android-sdk "$SDK" >/dev/null
 
 # --- Fim ------------------------------------------------------------------------
 
