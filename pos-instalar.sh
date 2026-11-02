@@ -2,7 +2,7 @@
 # Segunda etapa, no GNOME, como seu usuário (não como root):
 #   ./pos-instalar.sh
 #
-# Instala paru, Shelly, Claude (Desktop e CLI), Codex, ferramentas dos plugins,
+# Instala paru, Claude (Desktop e CLI), Codex, ferramentas dos plugins,
 # Flutter e o SDK do Android; conecta o GitHub e traz o ~/.claude.
 # Pode rodar de novo: cada passo pula o que já está feito.
 #
@@ -20,7 +20,7 @@ PACMAN=(
   qemu-system-x86 edk2-ovmf virtiofsd bubblewrap socat gjs
 )
 
-AUR=(claude-desktop google-chrome shelly-bin flutter-bin android-sdk-cmdline-tools-latest)
+AUR=(claude-desktop google-chrome flutter-bin android-sdk-cmdline-tools-latest)
 
 passo() { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
 aviso() { printf '\033[1;33m%s\033[0m\n' "$*"; }

@@ -40,7 +40,7 @@ apagar o disco, ele pede o nome do disco digitado por extenso.
 
 | Etapa | O que faz |
 |---|---|
-| Pacotes | paru, Shelly, Claude Desktop, Chrome, Codex, LSPs (Go, Python, TypeScript), Node, `jq` |
+| Pacotes | paru, Claude Desktop, Chrome, Codex, LSPs (Go, Python, TypeScript), Node, `jq` |
 | Cowork | QEMU, OVMF, virtiofsd e grupo `kvm` |
 | Claude Code | CLI instalado em `~/.local/bin` |
 | GitHub | `gh` com chave SSH e identidade do git |

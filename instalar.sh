@@ -215,5 +215,5 @@ Tire o pendrive e reinicie com: reboot
 
 No GNOME, entre como $USUARIO, abra o Console e rode:
   ./pos-instalar.sh
-Ele instala paru, Shelly, Claude, Codex, Flutter e o resto das ferramentas.
+Ele instala paru, Claude, Codex, Flutter e o resto das ferramentas.
 EOF
