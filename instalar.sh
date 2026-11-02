@@ -30,6 +30,8 @@ BASE=(
   networkmanager sudo nano git zram-generator
   pipewire pipewire-pulse pipewire-jack wireplumber
   bluez bluez-utils noto-fonts mesa mesa-utils btop
+  # Energia, manutenção automática e firewall
+  power-profiles-daemon fwupd pacman-contrib reflector ufw
 )
 
 # Toda leitura vem do terminal: com "curl | bash", o stdin é o próprio script.
@@ -85,7 +87,7 @@ perguntar_senha SENHA "Senha de $USUARIO (também usada no sudo)"
 
 # Microcode e driver Vulkan conforme o hardware.
 case $(grep -m1 vendor_id /proc/cpuinfo) in
-  *GenuineIntel*) BASE+=(intel-ucode) ;;
+  *GenuineIntel*) BASE+=(intel-ucode thermald) ;;
   *AuthenticAMD*) BASE+=(amd-ucode) ;;
 esac
 video=$(lspci | grep -iE 'vga|3d|display' || true)
@@ -185,6 +187,16 @@ chmod 440 /etc/sudoers.d/wheel
 passwd -l root
 
 printf '[zram0]\nzram-size = ram / 2\n' >/etc/systemd/zram-generator.conf
+# Valores da ArchWiki para swap em zram: o padrão 60 é pensado para disco.
+printf 'vm.swappiness = 180\nvm.watermark_boost_factor = 0\nvm.watermark_scale_factor = 125\nvm.page-cluster = 0\n' \
+  >/etc/sysctl.d/99-zram.conf
+
+echo 'MAKEFLAGS="-j\$(nproc)"' >/etc/makepkg.conf.d/jobs.conf
+printf -- '--country Brazil\n--protocol https\n--latest 10\n--sort rate\n--save /etc/pacman.d/mirrorlist\n' \
+  >/etc/xdg/reflector/reflector.conf
+# A política padrão do ufw já bloqueia a entrada; o ufw enable não roda em
+# chroot, então o firewall é ligado pelo arquivo de configuração.
+sed -i 's/^ENABLED=no/ENABLED=yes/' /etc/ufw/ufw.conf
 
 bootctl install
 printf 'default arch.conf\ntimeout 3\n' >/boot/loader/loader.conf
@@ -195,7 +207,9 @@ for k in linux linux-lts; do
     "\$titulo" \$k \$k $UUID_RAIZ >/boot/loader/entries/\$nome.conf
 done
 
-systemctl enable NetworkManager gdm bluetooth fstrim.timer systemd-boot-update
+systemctl enable NetworkManager gdm bluetooth fstrim.timer systemd-boot-update \
+  power-profiles-daemon systemd-oomd paccache.timer reflector.timer fwupd-refresh.timer ufw
+if pacman -Q thermald >/dev/null 2>&1; then systemctl enable thermald; fi
 EOF
 
 # A senha passa por stdin, fora da linha de comando e do heredoc acima.

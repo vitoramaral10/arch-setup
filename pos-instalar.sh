@@ -59,6 +59,12 @@ fi
 passo "Grupos kvm, flutter e docker, linger e Docker"
 sudo usermod -aG kvm,flutter,docker "$USER"
 sudo loginctl enable-linger "$USER"
+# Logs dos containers com teto de 30 MB cada (3 arquivos de 10 MB).
+if [[ ! -f /etc/docker/daemon.json ]]; then
+  sudo mkdir -p /etc/docker
+  echo '{ "log-driver": "json-file", "log-opts": { "max-size": "10m", "max-file": "3" } }' \
+    | sudo tee /etc/docker/daemon.json >/dev/null
+fi
 # O socket sobe o daemon na primeira chamada do docker, sem pesar no boot.
 sudo systemctl enable --now docker.socket
 

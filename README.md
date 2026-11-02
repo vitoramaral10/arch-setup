@@ -31,6 +31,11 @@ apagar o disco, ele pede o nome do disco digitado por extenso.
 | Hardware | microcode e driver Vulkan conforme a CPU e a GPU detectadas |
 | Idioma | `pt_BR.UTF-8`, teclado `br-abnt2`, fuso `America/Sao_Paulo` |
 | Contas | root bloqueado; o seu usuário usa sudo pelo grupo `wheel` |
+| Energia | `power-profiles-daemon` (seletor no GNOME) e `thermald` em CPU Intel |
+| Memória | zram com `swappiness=180` e `page-cluster=0`, mais `systemd-oomd` |
+| Manutenção | TRIM semanal, limpeza do cache do pacman, mirrors do Brasil (`reflector`) e firmware (`fwupd`) |
+| Firewall | `ufw` ligado, bloqueando a entrada |
+| Pacotes | pacman com cor e 10 downloads paralelos; `makepkg` com todos os núcleos |
 
 ## 2. No GNOME, como seu usuário
 
@@ -41,7 +46,7 @@ apagar o disco, ele pede o nome do disco digitado por extenso.
 | Etapa | O que faz |
 |---|---|
 | Pacotes | paru, Claude Desktop, Chrome, Codex, LSPs (Go, Python, TypeScript), Node, `jq` |
-| Docker | `docker`, `docker compose` e `buildx`, com o usuário no grupo `docker` |
+| Docker | `docker`, `docker compose` e `buildx`, grupo `docker` e logs limitados a 30 MB por container |
 | Cowork | QEMU, OVMF, virtiofsd e grupo `kvm` |
 | Claude Code | CLI instalado em `~/.local/bin` |
 | GitHub | `gh` com chave SSH e identidade do git |
