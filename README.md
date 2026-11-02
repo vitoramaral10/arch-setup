@@ -48,6 +48,8 @@ apagar o disco, ele pede o nome do disco digitado por extenso.
 | Pacotes | paru, Claude Desktop, Chrome, Codex, LSPs (Go, Python, TypeScript), Node, `jq` |
 | Docker | `docker`, `docker compose` e `buildx`, grupo `docker` e logs limitados a 30 MB por container |
 | Cowork | QEMU, OVMF, virtiofsd e grupo `kvm` |
+| SSH | `sshd` ligado, com login por senha (root só por chave) e porta 22 com limite de tentativas no `ufw` |
+| Tailscale | `tailscaled` ligado, login pelo link e acesso liberado no `ufw` para a interface `tailscale0` |
 | Claude Code | CLI instalado em `~/.local/bin` |
 | GitHub | `gh` com chave SSH e identidade do git |
 | `~/.claude` | clone do repositório de configuração e agendamento do `claude-config-sync` |

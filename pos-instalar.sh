@@ -19,6 +19,7 @@ PACMAN=(
   # Cowork (máquina virtual) e sandbox do Claude Code
   qemu-system-x86 edk2-ovmf virtiofsd bubblewrap socat gjs
   docker docker-compose docker-buildx
+  openssh tailscale
 )
 
 AUR=(claude-desktop google-chrome flutter-bin android-sdk-cmdline-tools-latest)
@@ -67,6 +68,22 @@ if [[ ! -f /etc/docker/daemon.json ]]; then
 fi
 # O socket sobe o daemon na primeira chamada do docker, sem pesar no boot.
 sudo systemctl enable --now docker.socket
+
+passo "Servidor SSH"
+# Login por senha fica no padrão do Arch (ligado); root só entra com chave.
+# O limit do ufw bloqueia quem tentar mais de 6 conexões em 30 segundos.
+sudo systemctl enable --now sshd
+sudo ufw limit 22/tcp >/dev/null
+
+passo "Tailscale"
+# As máquinas da tailnet acessam tudo; a rede local segue só com a porta 22.
+sudo systemctl enable --now tailscaled
+sudo ufw allow in on tailscale0 >/dev/null
+if ! tailscale status >/dev/null 2>&1; then
+  echo "Abra o link que aparecer e autorize esta máquina na sua conta."
+  # --operator deixa usar o comando tailscale sem sudo.
+  sudo tailscale up --operator="$USER" --hostname="$(cat /etc/hostname)"
+fi
 
 # --- Shell ----------------------------------------------------------------------
 
