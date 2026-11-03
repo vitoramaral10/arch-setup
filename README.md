@@ -37,6 +37,7 @@ apagar o disco, ele pede o nome do disco digitado por extenso.
 | Firewall | `ufw` ligado, bloqueando a entrada |
 | Pacotes | pacman com cor e 10 downloads paralelos; `makepkg` com todos os núcleos |
 | Boot e disco | menu do systemd-boot sem espera (segure Espaço para o LTS), raiz com `noatime`, journal até 200 MB, desligamento em até 15 s por serviço, watchdog desligado |
+| GPU Intel | frequência mínima de 600 MHz, para as animações não engasgarem enquanto a GPU acelera |
 | Extras | `bash-completion`, `man`, `tmux`, emoji e CJK nas fontes, VA-API (`intel-media-driver`) para vídeo por hardware |
 
 ## 2. No GNOME, como seu usuário

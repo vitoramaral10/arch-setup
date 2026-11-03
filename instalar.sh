@@ -211,6 +211,10 @@ printf '[Manager]\\nDefaultTimeoutStopSec=15s\\n' >/etc/systemd/user.conf.d/10-d
 # Watchdog não serve num notebook e gasta energia.
 echo 'kernel.nmi_watchdog = 0' >/etc/sysctl.d/10-watchdog.conf
 echo 'blacklist iTCO_wdt' >/etc/modprobe.d/10-watchdog.conf
+# GPU Intel (i915) com mínimo de 600 MHz: as animações não esperam ela acelerar
+# desde 300. Parada, ela desliga (RC6) do mesmo jeito. Outras GPUs não têm o atributo.
+echo 'SUBSYSTEM=="drm", KERNEL=="card[0-9]", ATTR{gt_min_freq_mhz}=="?*", ATTR{gt_min_freq_mhz}="600"' \
+  >/etc/udev/rules.d/99-gpu-intel-minimo.rules
 
 bootctl install
 # timeout 0: o menu só aparece segurando Espaço no boot (para escolher o LTS).
