@@ -3,7 +3,7 @@
 #   ./pos-instalar.sh
 #
 # Nos dois perfis: paru, Docker, SSH, Tailscale, Claude Code, Codex,
-# ferramentas dos plugins, GitHub e ~/.claude. Só no desktop: Claude Desktop,
+# ferramentas dos plugins, GitHub e ~/.claude. Só no desktop: Claude Desktop, Shelly,
 # Chrome, Cowork, Flutter, SDK do Android e o visual do GNOME.
 # O perfil vem de /etc/arch-setup-perfil, gravado pelo instalar.sh.
 # Pode rodar de novo: cada passo pula o que já está feito.
@@ -35,7 +35,7 @@ if [[ $PERFIL == desktop ]]; then
     # Visual do GNOME: compilar o Orchis e completar o CSS dele para o shell atual
     sassc python-gobject
   )
-  AUR=(claude-desktop google-chrome flutter-bin android-sdk-cmdline-tools-latest)
+  AUR=(claude-desktop google-chrome shelly-bin flutter-bin android-sdk-cmdline-tools-latest)
   GRUPOS=kvm,flutter,docker
 fi
 

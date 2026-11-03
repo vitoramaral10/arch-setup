@@ -54,7 +54,7 @@ Os itens marcados com *(desktop)* ou *(servidor)* valem só naquele perfil.
 
 | Etapa | O que faz |
 |---|---|
-| Pacotes | paru, Codex, LSPs (Go, Python, TypeScript), Node, `jq`; no desktop, Claude Desktop e Chrome |
+| Pacotes | paru, Codex, LSPs (Go, Python, TypeScript), Node, `jq`; no desktop, Claude Desktop, Chrome e a loja Shelly (só pacman e AUR, sem Flatpak) |
 | Docker | `docker`, `docker compose` e `buildx`, grupo `docker` e logs limitados a 30 MB por container |
 | Cowork *(desktop)* | QEMU, OVMF, virtiofsd e grupo `kvm` |
 | SSH | `sshd` ligado, com login por senha (root só por chave) e porta 22 com limite de tentativas no `ufw` |
