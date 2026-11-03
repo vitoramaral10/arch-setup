@@ -56,10 +56,26 @@ apagar o disco, ele pede o nome do disco digitado por extenso.
 | GitHub | `gh` com chave SSH e identidade do git |
 | `~/.claude` | clone do repositório de configuração e agendamento do `claude-config-sync` |
 | Flutter | Flutter e SDK do Android em `~/Android/Sdk`, sem o Android Studio |
+| Visual | tema Orchis claro e escuro, ícones Tela-circle, papel de parede do Orchis e as extensões User Themes, Blur my Shell, Dash to Dock (embaixo) e Just Perfection |
 
 O script pode rodar de novo: cada etapa pula o que já está feito. Por padrão, o
 paru mostra cada PKGBUILD do AUR para revisão. Com `REVISAR=0`, essa revisão é
 pulada.
+
+### Visual do GNOME
+
+O Orchis só tem suporte oficial até o GNOME 48. Dois scripts em `gnome/` cobrem
+a diferença, e o `pos-instalar.sh` instala os dois em `~/.local/bin`:
+
+- `orchis-completar-51 <Orchis-Dark|Orchis-Light>` copia do tema padrão do
+  GNOME as regras dos elementos que o Orchis não estiliza: janela do Alt+F2,
+  botão Limpar das notificações, eventos da agenda, indicadores de gravação de
+  tela e tela de desbloqueio. Rode de novo depois de reinstalar o Orchis, que
+  sobrescreve os arquivos.
+- `orchis-segue-tema`, iniciado pelo serviço de usuário
+  `orchis-segue-tema.service`, troca o tema do GTK, do shell e dos apps
+  libadwaita entre Orchis-Light e Orchis-Dark quando você aperta o botão de
+  modo claro/escuro.
 
 No fim, saia e entre de novo na sessão. Depois rode `claude` (login e plugins)
 e `flutter doctor`.

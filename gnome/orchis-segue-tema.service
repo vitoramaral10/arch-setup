@@ -1,0 +1,11 @@
+[Unit]
+Description=Orchis segue o botao claro/escuro do GNOME
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+ExecStart=%h/.local/bin/orchis-segue-tema
+Restart=on-failure
+
+[Install]
+WantedBy=graphical-session.target

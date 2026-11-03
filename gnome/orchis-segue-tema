@@ -1,0 +1,22 @@
+#!/bin/sh
+# Faz o Orchis seguir o botao claro/escuro do GNOME: troca o tema GTK3, o do shell
+# e os links de ~/.config/gtk-4.0 (libadwaita) entre Orchis-Light e Orchis-Dark.
+UT="$HOME/.local/share/gnome-shell/extensions/user-theme@gnome-shell-extensions.gcampax.github.com/schemas"
+
+aplica() {
+  case "$(gsettings get org.gnome.desktop.interface color-scheme)" in
+    *dark*) t=Orchis-Dark ;;
+    *) t=Orchis-Light ;;
+  esac
+  [ -d "$HOME/.themes/$t" ] || { echo "falta $HOME/.themes/$t" >&2; return 1; }
+  mkdir -p "$HOME/.config/gtk-4.0"
+  for f in gtk.css gtk-dark.css assets; do
+    ln -sfn "$HOME/.themes/$t/gtk-4.0/$f" "$HOME/.config/gtk-4.0/$f"
+  done
+  gsettings set org.gnome.desktop.interface gtk-theme "$t"
+  gsettings --schemadir "$UT" set org.gnome.shell.extensions.user-theme name "$t"
+  echo "aplicado $t"
+}
+
+aplica
+gsettings monitor org.gnome.desktop.interface color-scheme | while read -r _; do aplica; done

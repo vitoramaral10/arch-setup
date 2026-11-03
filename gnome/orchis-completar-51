@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+"""Completa o Orchis-Dark (feito ate o GNOME 48) para o GNOME 51.
+
+Uso: orchis-completar-51 [Orchis-Dark|Orchis-Light]
+Rodar de novo depois de cada ./install.sh do Orchis, que sobrescreve os arquivos.
+- shell: anexa as regras do tema padrao do 51 para classes que o Orchis nao estiliza
+  (dialogo Alt+F2, botao Limpar notificacoes, eventos da agenda, indicadores de
+  privacidade, tela de desbloqueio...). Sem isso elas aparecem sem estilo nenhum.
+- shell: remove `background-position: center center`, que o St rejeita (o padrao ja centraliza).
+- gtk: troca `var(--accent-bg-color)` em @define-color, que o GTK nao aceita, pelo azul do Orchis.
+"""
+import re
+import sys
+from pathlib import Path
+from gi.repository import Gio
+
+NAME = sys.argv[1] if len(sys.argv) > 1 else "Orchis-Dark"
+THEME = Path.home() / ".themes" / NAME
+SHELL = THEME / "gnome-shell/gnome-shell.css"
+VARIANT = "light" if "Light" in NAME else "dark"
+MARK = "/* --- orchis-completar-51 --- */"
+ACCENT = "#3c87eb"
+
+
+def classes(css):
+    return set(re.findall(r"\.[a-z][a-z0-9_-]+(?=[\s{,:.>#\[)])", css))
+
+
+def blocks(css):
+    css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+    return re.findall(r"([^{}]+)\{([^{}]*)\}", css)
+
+
+res = Gio.Resource.load("/usr/share/gnome-shell/gnome-shell-theme.gresource")
+default = res.lookup_data(f"/org/gnome/shell/theme/gnome-shell-{VARIANT}.css", 0).get_data().decode()
+
+shell = SHELL.read_text().split(MARK)[0].rstrip() + "\n"
+shell = shell.replace("  background-position: center center;\n", "")
+missing = classes(default) - classes(shell)
+
+extra = []
+for sel, body in blocks(default):
+    # so os seletores do grupo que tocam classes faltantes, para nao sobrescrever o Orchis
+    sel = ", ".join(s.strip() for s in sel.split(",") if classes(s + " ") & missing)
+    if sel:
+        # urls relativas do tema padrao apontam para dentro do gresource
+        body = re.sub(r'url\("?(?!resource:|file:)([^")]+)"?\)', r'url("resource:///org/gnome/shell/theme/\1")', body)
+        extra.append(f"{sel.strip()} {{{body}}}")
+
+SHELL.write_text(shell + "\n" + MARK + "\n" + "\n".join(extra) + "\n")
+print(f"{NAME} shell: {len(missing)} classes sem estilo, {len(extra)} regras do 51 anexadas")
+
+for name in ("gtk.css", "gtk-dark.css"):
+    for d in ("gtk-3.0", "gtk-4.0"):
+        f = THEME / d / name
+        if f.exists():
+            t = f.read_text()
+            n = re.sub(r"(@define-color [\w-]+ )var\(--accent-bg-color\);", rf"\g<1>{ACCENT};", t)
+            if n != t:
+                f.write_text(n)
+                print(f"gtk: corrigido {d}/{name}")

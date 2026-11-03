@@ -23,6 +23,8 @@ GNOME=(
   xdg-user-dirs-gtk gnome-backgrounds gnome-calculator gnome-disk-utility
   gnome-system-monitor gnome-text-editor gnome-color-manager gst-thumbnailers
   loupe papers showtime tecla
+  # Opcionais do gnome-shell: eventos na agenda do relógio e gravação de tela
+  evolution-data-server gst-plugin-pipewire
 )
 
 BASE=(
