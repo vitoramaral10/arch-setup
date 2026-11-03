@@ -166,9 +166,6 @@ if [[ -d $EXT_DIR/blur-my-shell@aunetx ]]; then
   # Sem isso o desfoque retangular cobre o painel em pílula do Orchis.
   ext_set blur-my-shell@aunetx org.gnome.shell.extensions.blur-my-shell.panel corner-radius 19
   ext_set blur-my-shell@aunetx org.gnome.shell.extensions.blur-my-shell.panel override-background false
-  # Sem isso os menus ficam com o fundo escuro do desfoque e o texto escuro do Orchis-Light some.
-  ext_set blur-my-shell@aunetx org.gnome.shell.extensions.blur-my-shell.popup override-background false
-  ext_set blur-my-shell@aunetx org.gnome.shell.extensions.blur-my-shell.popup preserve-shell-theme true
 fi
 
 # --- Shell ----------------------------------------------------------------------

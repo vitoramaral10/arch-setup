@@ -1,6 +1,6 @@
 #!/bin/sh
-# Faz o Orchis seguir o botao claro/escuro do GNOME: troca o tema GTK3, o do shell
-# e os links de ~/.config/gtk-4.0 (libadwaita) entre Orchis-Light e Orchis-Dark.
+# Faz o Orchis seguir o botao claro/escuro do GNOME: troca o tema GTK3 e os links
+# de ~/.config/gtk-4.0 (libadwaita) entre Orchis-Light e Orchis-Dark.
 UT="$HOME/.local/share/gnome-shell/extensions/user-theme@gnome-shell-extensions.gcampax.github.com/schemas"
 
 aplica() {
@@ -14,7 +14,9 @@ aplica() {
     ln -sfn "$HOME/.themes/$t/gtk-4.0/$f" "$HOME/.config/gtk-4.0/$f"
   done
   gsettings set org.gnome.desktop.interface gtk-theme "$t"
-  gsettings --schemadir "$UT" set org.gnome.shell.extensions.user-theme name "$t"
+  # O shell fica sempre escuro: o Blur my Shell pinta os menus de escuro e o texto
+  # escuro do Orchis-Light sumiria neles.
+  gsettings --schemadir "$UT" set org.gnome.shell.extensions.user-theme name Orchis-Dark
   echo "aplicado $t"
 }
 

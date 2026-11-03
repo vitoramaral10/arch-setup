@@ -73,9 +73,10 @@ a diferença, e o `pos-instalar.sh` instala os dois em `~/.local/bin`:
   tela e tela de desbloqueio. Rode de novo depois de reinstalar o Orchis, que
   sobrescreve os arquivos.
 - `orchis-segue-tema`, iniciado pelo serviço de usuário
-  `orchis-segue-tema.service`, troca o tema do GTK, do shell e dos apps
-  libadwaita entre Orchis-Light e Orchis-Dark quando você aperta o botão de
-  modo claro/escuro.
+  `orchis-segue-tema.service`, troca o tema do GTK e dos apps libadwaita entre
+  Orchis-Light e Orchis-Dark quando você aperta o botão de modo claro/escuro.
+  O shell (painel e menus) fica sempre no Orchis-Dark, combinando com o fundo
+  escuro que o Blur my Shell dá aos menus.
 
 No fim, saia e entre de novo na sessão. Depois rode `claude` (login e plugins)
 e `flutter doctor`.
