@@ -63,7 +63,7 @@ Os itens marcados com *(desktop)* ou *(servidor)* valem só naquele perfil.
 | GitHub | `gh` com chave SSH e identidade do git |
 | `~/.claude` | clone do repositório de configuração e agendamento do `claude-config-sync` |
 | Flutter *(desktop)* | Flutter e SDK do Android em `~/Android/Sdk`, sem o Android Studio |
-| Visual *(desktop)* | tema Orchis claro e escuro, ícones Tela-circle, papel de parede do Orchis e as extensões User Themes, Blur my Shell, Dash to Dock (embaixo) e Just Perfection |
+| Visual *(desktop)* | tema Orchis claro e escuro, ícones Tela-circle, papel de parede do Orchis e as extensões User Themes, Blur my Shell, Dash to Dock (embaixo), Just Perfection e AppIndicator (bandeja de ícones) |
 
 O script pode rodar de novo: cada etapa pula o que já está feito. Por padrão, o
 paru mostra cada PKGBUILD do AUR para revisão. Com `REVISAR=0`, essa revisão é

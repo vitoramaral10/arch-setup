@@ -116,6 +116,8 @@ if [[ $PERFIL == desktop ]]; then
     blur-my-shell@aunetx
     dash-to-dock@micxgx.gmail.com
     just-perfection-desktop@just-perfection
+    # Bandeja de ícones: sem ela o Claude Desktop encerra ao perder a janela principal.
+    appindicatorsupport@rgcjonas.gmail.com
   )
   ext_set() { gsettings --schemadir "$EXT_DIR/$1/schemas" set "${@:2}"; }
 
