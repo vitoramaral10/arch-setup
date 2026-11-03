@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Segunda etapa, no GNOME, como seu usuário (não como root):
+# Segunda etapa, como seu usuário (não como root), no GNOME ou no console do servidor:
 #   ./pos-instalar.sh
 #
-# Instala paru, Claude (Desktop e CLI), Codex, ferramentas dos plugins,
-# Flutter e o SDK do Android; conecta o GitHub e traz o ~/.claude.
+# Nos dois perfis: paru, Docker, SSH, Tailscale, Claude Code, Codex,
+# ferramentas dos plugins, GitHub e ~/.claude. Só no desktop: Claude Desktop,
+# Chrome, Cowork, Flutter, SDK do Android e o visual do GNOME.
+# O perfil vem de /etc/arch-setup-perfil, gravado pelo instalar.sh.
 # Pode rodar de novo: cada passo pula o que já está feito.
 #
 # REVISAR=0 ./pos-instalar.sh  pula a revisão dos PKGBUILDs do AUR.
@@ -12,20 +14,30 @@ set -euo pipefail
 REVISAR=${REVISAR:-1}
 SDK="$HOME/Android/Sdk"
 REPO_RAW="https://raw.githubusercontent.com/vitoramaral10/arch-setup/main"
+PERFIL=$(cat /etc/arch-setup-perfil 2>/dev/null || echo desktop)
 
 PACMAN=(
   github-cli jq unzip
   nodejs npm go gopls pyright typescript-language-server openai-codex
-  jdk21-openjdk
-  # Cowork (máquina virtual) e sandbox do Claude Code
-  qemu-system-x86 edk2-ovmf virtiofsd bubblewrap socat gjs
+  # Sandbox do Claude Code
+  bubblewrap socat
   docker docker-compose docker-buildx
   openssh tailscale
-  # Visual do GNOME: compilar o Orchis e completar o CSS dele para o shell atual
-  sassc python-gobject
 )
+AUR=()
+GRUPOS=docker
 
-AUR=(claude-desktop google-chrome flutter-bin android-sdk-cmdline-tools-latest)
+if [[ $PERFIL == desktop ]]; then
+  PACMAN+=(
+    jdk21-openjdk
+    # Cowork (máquina virtual do Claude Desktop)
+    qemu-system-x86 edk2-ovmf virtiofsd gjs
+    # Visual do GNOME: compilar o Orchis e completar o CSS dele para o shell atual
+    sassc python-gobject
+  )
+  AUR=(claude-desktop google-chrome flutter-bin android-sdk-cmdline-tools-latest)
+  GRUPOS=kvm,flutter,docker
+fi
 
 passo() { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
 aviso() { printf '\033[1;33m%s\033[0m\n' "$*"; }
@@ -52,16 +64,18 @@ if ! tem paru; then
   rm -rf "$tmp"
 fi
 
-passo "Pacotes do AUR: ${AUR[*]}"
-if [[ $REVISAR == 1 ]]; then
-  echo "O paru mostra cada PKGBUILD para revisão. Confira as URLs de download."
-  paru -S --needed "${AUR[@]}"
-else
-  paru -S --needed --noconfirm --skipreview "${AUR[@]}"
+if [[ ${#AUR[@]} -gt 0 ]]; then
+  passo "Pacotes do AUR: ${AUR[*]}"
+  if [[ $REVISAR == 1 ]]; then
+    echo "O paru mostra cada PKGBUILD para revisão. Confira as URLs de download."
+    paru -S --needed "${AUR[@]}"
+  else
+    paru -S --needed --noconfirm --skipreview "${AUR[@]}"
+  fi
 fi
 
-passo "Grupos kvm, flutter e docker, linger e Docker"
-sudo usermod -aG kvm,flutter,docker "$USER"
+passo "Grupos ${GRUPOS//,/, }, linger e Docker"
+sudo usermod -aG "$GRUPOS" "$USER"
 sudo loginctl enable-linger "$USER"
 # Logs dos containers com teto de 30 MB cada (3 arquivos de 10 MB).
 if [[ ! -f /etc/docker/daemon.json ]]; then
@@ -88,84 +102,84 @@ if ! tailscale status >/dev/null 2>&1; then
   sudo tailscale up --operator="$USER" --hostname="$(cat /etc/hostname)"
 fi
 
-# --- GNOME ----------------------------------------------------------------------
+# --- GNOME (só no desktop) ------------------------------------------------------
 
-gsettings set org.gnome.desktop.interface show-battery-percentage true
-gsettings set org.gnome.desktop.peripherals.touchpad tap-to-click true
+if [[ $PERFIL == desktop ]]; then
+  gsettings set org.gnome.desktop.interface show-battery-percentage true
+  gsettings set org.gnome.desktop.peripherals.touchpad tap-to-click true
 
-# --- Visual do GNOME: Orchis --------------------------------------------------
+  # --- Visual do GNOME: Orchis --------------------------------------------------
 
-EXT_DIR="$HOME/.local/share/gnome-shell/extensions"
-EXTENSOES=(
-  user-theme@gnome-shell-extensions.gcampax.github.com
-  blur-my-shell@aunetx
-  dash-to-dock@micxgx.gmail.com
-  just-perfection-desktop@just-perfection
-)
-ext_set() { gsettings --schemadir "$EXT_DIR/$1/schemas" set "${@:2}"; }
+  EXT_DIR="$HOME/.local/share/gnome-shell/extensions"
+  EXTENSOES=(
+    user-theme@gnome-shell-extensions.gcampax.github.com
+    blur-my-shell@aunetx
+    dash-to-dock@micxgx.gmail.com
+    just-perfection-desktop@just-perfection
+  )
+  ext_set() { gsettings --schemadir "$EXT_DIR/$1/schemas" set "${@:2}"; }
 
-passo "Extensões do GNOME: ${EXTENSOES[*]}"
-shell_ver=$(gnome-shell --version | grep -oE '[0-9]+' | head -1)
-for uuid in "${EXTENSOES[@]}"; do
-  [[ -d $EXT_DIR/$uuid ]] && continue
-  zip=$(mktemp --suffix=.zip)
-  curl -fsSL -o "$zip" "https://extensions.gnome.org/download-extension/$uuid.shell-extension.zip?shell_version=$shell_ver" \
-    && gnome-extensions install --force "$zip" \
-    || aviso "$uuid ainda não tem versão para o GNOME $shell_ver."
-  rm -f "$zip"
-done
-# No Wayland a extensão nova só carrega no próximo login; por isso a lista vai direto no gsettings.
-instaladas=(); for uuid in "${EXTENSOES[@]}"; do [[ -d $EXT_DIR/$uuid ]] && instaladas+=("$uuid"); done
-gsettings set org.gnome.shell enabled-extensions "$(python3 -c '
-import ast, sys
-lista = ast.literal_eval(sys.argv[1].removeprefix("@as "))
-print(lista + [u for u in sys.argv[2:] if u not in lista])' \
-  "$(gsettings get org.gnome.shell enabled-extensions)" "${instaladas[@]}")"
-gsettings set org.gnome.shell disable-user-extensions false
+  passo "Extensões do GNOME: ${EXTENSOES[*]}"
+  shell_ver=$(gnome-shell --version | grep -oE '[0-9]+' | head -1)
+  for uuid in "${EXTENSOES[@]}"; do
+    [[ -d $EXT_DIR/$uuid ]] && continue
+    zip=$(mktemp --suffix=.zip)
+    curl -fsSL -o "$zip" "https://extensions.gnome.org/download-extension/$uuid.shell-extension.zip?shell_version=$shell_ver" \
+      && gnome-extensions install --force "$zip" \
+      || aviso "$uuid ainda não tem versão para o GNOME $shell_ver."
+    rm -f "$zip"
+  done
+  # No Wayland a extensão nova só carrega no próximo login; por isso a lista vai direto no gsettings.
+  instaladas=(); for uuid in "${EXTENSOES[@]}"; do [[ -d $EXT_DIR/$uuid ]] && instaladas+=("$uuid"); done
+  juntar='import ast, sys; l = ast.literal_eval(sys.argv[1].removeprefix("@as ")); print(l + [u for u in sys.argv[2:] if u not in l])'
+  gsettings set org.gnome.shell enabled-extensions \
+    "$(python3 -c "$juntar" "$(gsettings get org.gnome.shell enabled-extensions)" "${instaladas[@]}")"
+  gsettings set org.gnome.shell disable-user-extensions false
 
-if [[ ! -d ~/.themes/Orchis-Dark || ! -d ~/.local/share/icons/Tela-circle-dark ]]; then
-  passo "Tema Orchis (claro e escuro) e ícones Tela-circle"
-  tmp=$(mktemp -d)
-  git clone -q --depth 1 https://github.com/vinceliuice/Orchis-theme "$tmp/orchis"
-  git clone -q --depth 1 https://github.com/vinceliuice/Tela-circle-icon-theme "$tmp/tela"
-  # dock: estilo da Dash to Dock (o script renomeia o stylesheet.css dela para .bak).
-  # submenu: submenus das configurações rápidas opacos, sem texto apagado.
-  (cd "$tmp/orchis" && ./install.sh -c light dark -s standard -i arch --tweaks dock submenu >/dev/null)
-  (cd "$tmp/tela" && ./install.sh standard >/dev/null)
-  mkdir -p ~/.local/share/backgrounds
-  cp "$tmp/orchis/wallpaper/4k.jpg" ~/.local/share/backgrounds/orchis-4k.jpg
-  rm -rf "$tmp"
-fi
+  if [[ ! -d ~/.themes/Orchis-Dark || ! -d ~/.local/share/icons/Tela-circle-dark ]]; then
+    passo "Tema Orchis (claro e escuro) e ícones Tela-circle"
+    tmp=$(mktemp -d)
+    git clone -q --depth 1 https://github.com/vinceliuice/Orchis-theme "$tmp/orchis"
+    git clone -q --depth 1 https://github.com/vinceliuice/Tela-circle-icon-theme "$tmp/tela"
+    # dock: estilo da Dash to Dock (o script renomeia o stylesheet.css dela para .bak).
+    # submenu: submenus das configurações rápidas opacos, sem texto apagado.
+    (cd "$tmp/orchis" && ./install.sh -c light dark -s standard -i arch --tweaks dock submenu >/dev/null)
+    (cd "$tmp/tela" && ./install.sh standard >/dev/null)
+    mkdir -p ~/.local/share/backgrounds
+    cp "$tmp/orchis/wallpaper/4k.jpg" ~/.local/share/backgrounds/orchis-4k.jpg
+    rm -rf "$tmp"
+  fi
 
-passo "Completando o Orchis para o GNOME $shell_ver e ligando o claro/escuro"
-mkdir -p ~/.local/bin ~/.config/systemd/user
-for f in orchis-completar-51 orchis-segue-tema; do
-  curl -fsSL "$REPO_RAW/gnome/$f" -o ~/.local/bin/$f
-  chmod +x ~/.local/bin/$f
-done
-curl -fsSL "$REPO_RAW/gnome/orchis-segue-tema.service" -o ~/.config/systemd/user/orchis-segue-tema.service
-# O Orchis só vai até o shell 48; o script traz do tema padrão as regras das peças que faltam.
-for t in Orchis-Dark Orchis-Light; do python3 -I ~/.local/bin/orchis-completar-51 "$t"; done
-systemctl --user daemon-reload
-systemctl --user enable orchis-segue-tema >/dev/null 2>&1
-# Uma rodada agora aplica o tema certo; o serviço segue o botão a partir do login.
-timeout 3 ~/.local/bin/orchis-segue-tema >/dev/null || true
+  passo "Completando o Orchis para o GNOME $shell_ver e ligando o claro/escuro"
+  mkdir -p ~/.local/bin ~/.config/systemd/user
+  for f in orchis-completar-51 orchis-segue-tema; do
+    curl -fsSL "$REPO_RAW/gnome/$f" -o ~/.local/bin/$f
+    chmod +x ~/.local/bin/$f
+  done
+  curl -fsSL "$REPO_RAW/gnome/orchis-segue-tema.service" -o ~/.config/systemd/user/orchis-segue-tema.service
+  # O Orchis só vai até o shell 48; o script traz do tema padrão as regras das peças que faltam.
+  for t in Orchis-Dark Orchis-Light; do python3 -I ~/.local/bin/orchis-completar-51 "$t"; done
+  systemctl --user daemon-reload
+  systemctl --user enable orchis-segue-tema >/dev/null 2>&1
+  # Uma rodada agora aplica o tema certo; o serviço segue o botão a partir do login.
+  timeout 3 ~/.local/bin/orchis-segue-tema >/dev/null || true
 
-wall="file://$HOME/.local/share/backgrounds/orchis-4k.jpg"
-gsettings set org.gnome.desktop.background picture-uri "$wall"
-gsettings set org.gnome.desktop.background picture-uri-dark "$wall"
-gsettings set org.gnome.desktop.interface icon-theme Tela-circle-dark
-if [[ -d $EXT_DIR/dash-to-dock@micxgx.gmail.com ]]; then
-  ext_set dash-to-dock@micxgx.gmail.com org.gnome.shell.extensions.dash-to-dock dock-position BOTTOM
-  ext_set dash-to-dock@micxgx.gmail.com org.gnome.shell.extensions.dash-to-dock dash-max-icon-size 40
-  ext_set dash-to-dock@micxgx.gmail.com org.gnome.shell.extensions.dash-to-dock intellihide true
-  ext_set dash-to-dock@micxgx.gmail.com org.gnome.shell.extensions.dash-to-dock show-trash false
-  ext_set dash-to-dock@micxgx.gmail.com org.gnome.shell.extensions.dash-to-dock show-mounts false
-fi
-if [[ -d $EXT_DIR/blur-my-shell@aunetx ]]; then
-  # Sem isso o desfoque retangular cobre o painel em pílula do Orchis.
-  ext_set blur-my-shell@aunetx org.gnome.shell.extensions.blur-my-shell.panel corner-radius 19
-  ext_set blur-my-shell@aunetx org.gnome.shell.extensions.blur-my-shell.panel override-background false
+  wall="file://$HOME/.local/share/backgrounds/orchis-4k.jpg"
+  gsettings set org.gnome.desktop.background picture-uri "$wall"
+  gsettings set org.gnome.desktop.background picture-uri-dark "$wall"
+  gsettings set org.gnome.desktop.interface icon-theme Tela-circle-dark
+  if [[ -d $EXT_DIR/dash-to-dock@micxgx.gmail.com ]]; then
+    ext_set dash-to-dock@micxgx.gmail.com org.gnome.shell.extensions.dash-to-dock dock-position BOTTOM
+    ext_set dash-to-dock@micxgx.gmail.com org.gnome.shell.extensions.dash-to-dock dash-max-icon-size 40
+    ext_set dash-to-dock@micxgx.gmail.com org.gnome.shell.extensions.dash-to-dock intellihide true
+    ext_set dash-to-dock@micxgx.gmail.com org.gnome.shell.extensions.dash-to-dock show-trash false
+    ext_set dash-to-dock@micxgx.gmail.com org.gnome.shell.extensions.dash-to-dock show-mounts false
+  fi
+  if [[ -d $EXT_DIR/blur-my-shell@aunetx ]]; then
+    # Sem isso o desfoque retangular cobre o painel em pílula do Orchis.
+    ext_set blur-my-shell@aunetx org.gnome.shell.extensions.blur-my-shell.panel corner-radius 19
+    ext_set blur-my-shell@aunetx org.gnome.shell.extensions.blur-my-shell.panel override-background false
+  fi
 fi
 
 # --- Shell ----------------------------------------------------------------------
@@ -235,15 +249,17 @@ if ! codex login status >/dev/null 2>&1; then
   codex login || aviso "Login do Codex ficou para depois: rode codex login."
 fi
 
-# --- Android SDK e Flutter ------------------------------------------------------
+# --- Android SDK e Flutter (só no desktop) --------------------------------------
 
-if [[ ! -d $SDK/platform-tools ]]; then
-  passo "SDK do Android em $SDK (responda y na licença)"
-  /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root="$SDK" \
-    "cmdline-tools;latest" "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+if [[ $PERFIL == desktop ]]; then
+  if [[ ! -d $SDK/platform-tools ]]; then
+    passo "SDK do Android em $SDK (responda y na licença)"
+    /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root="$SDK" \
+      "cmdline-tools;latest" "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+  fi
+  # Antes do próximo login o grupo flutter ainda não vale; o flutter-bin cai no unionfs e funciona igual.
+  flutter config --android-sdk "$SDK" >/dev/null
 fi
-# Antes do próximo login o grupo flutter ainda não vale; o flutter-bin cai no unionfs e funciona igual.
-flutter config --android-sdk "$SDK" >/dev/null
 
 # --- Claude Remote Control ------------------------------------------------------
 
@@ -273,11 +289,15 @@ systemctl --user enable claude-remote-control >/dev/null 2>&1
 # --- Fim ------------------------------------------------------------------------
 
 passo "Pronto"
+if [[ $PERFIL == desktop ]]; then
+  echo "Saia e entre de novo na sessão do GNOME, para valerem os grupos kvm, flutter e docker."
+else
+  echo "Saia e entre de novo (no console ou por SSH), para valer o grupo docker."
+fi
 cat <<'EOF'
-Saia e entre de novo na sessão do GNOME, para valerem os grupos kvm, flutter e docker.
 Depois:
   cd ~/projects && claude   # login, plugins e confiança na pasta (/exit no fim)
   claude remote-control     # responda y, espere a sessão subir e saia com Ctrl+C
   systemctl --user start claude-remote-control
-  flutter doctor            # tudo deve aparecer com ✓
 EOF
+if [[ $PERFIL == desktop ]]; then echo "  flutter doctor            # tudo deve aparecer com ✓"; fi

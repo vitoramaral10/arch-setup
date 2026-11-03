@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Instala Arch Linux + GNOME enxuto a partir do live ISO oficial.
+# Instala Arch Linux a partir do live ISO oficial, em um de dois perfis:
+# desktop (GNOME enxuto) ou servidor (sem interface gráfica).
 #
 # Uso, no root@archiso, com a internet já conectada (iwctl ou cabo):
 #   curl -fsSL https://raw.githubusercontent.com/vitoramaral10/arch-setup/main/instalar.sh | bash
@@ -29,13 +30,19 @@ GNOME=(
 
 BASE=(
   base base-devel linux linux-lts linux-firmware
-  networkmanager sudo nano git zram-generator
+  networkmanager sudo nano git zram-generator btop
+  # Manutenção automática e firewall
+  fwupd pacman-contrib reflector ufw
+  # Conforto no terminal
+  bash-completion man-db man-pages tmux
+)
+
+# Só no desktop: áudio, Bluetooth, vídeo, fontes e o seletor de energia do GNOME.
+DESKTOP=(
   pipewire pipewire-pulse pipewire-jack wireplumber sof-firmware
-  bluez bluez-utils noto-fonts mesa mesa-utils btop
-  # Energia, manutenção automática e firewall
-  power-profiles-daemon fwupd pacman-contrib reflector ufw
-  # Conforto no terminal e fontes com emoji e CJK
-  bash-completion man-db man-pages tmux noto-fonts-emoji noto-fonts-cjk
+  bluez bluez-utils noto-fonts noto-fonts-emoji noto-fonts-cjk mesa mesa-utils
+  power-profiles-daemon
+  "${GNOME[@]}"
 )
 
 # Toda leitura vem do terminal: com "curl | bash", o stdin é o próprio script.
@@ -84,20 +91,26 @@ perguntar DISCO "Disco para instalar" "${discos[0]}"
 DISCO=${DISCO#/dev/}
 [[ -b /dev/$DISCO ]] || erro "/dev/$DISCO não existe."
 
-perguntar MAQUINA "Nome da máquina" "tivit"
+perguntar PERFIL "Perfil (desktop ou servidor)" "desktop"
+[[ $PERFIL == desktop || $PERFIL == servidor ]] || erro "perfil inválido: use desktop ou servidor."
+if [[ $PERFIL == desktop ]]; then maquina_padrao=tivit; else maquina_padrao=servidor; fi
+perguntar MAQUINA "Nome da máquina" "$maquina_padrao"
 perguntar USUARIO "Seu usuário" "vitor"
 [[ $USUARIO =~ ^[a-z_][a-z0-9_-]*$ ]] || erro "usuário inválido: use minúsculas, números, - ou _."
 perguntar_senha SENHA "Senha de $USUARIO (também usada no sudo)"
 
-# Microcode e driver Vulkan conforme o hardware.
+# Microcode conforme a CPU; no desktop, driver Vulkan conforme a GPU.
 case $(grep -m1 vendor_id /proc/cpuinfo) in
   *GenuineIntel*) BASE+=(intel-ucode thermald) ;;
   *AuthenticAMD*) BASE+=(amd-ucode) ;;
 esac
-video=$(lspci | grep -iE 'vga|3d|display' || true)
-grep -qi intel <<<"$video" && BASE+=(vulkan-intel intel-media-driver libva-utils)
-grep -qiE 'amd|ati' <<<"$video" && BASE+=(vulkan-radeon libva-mesa-driver)
-grep -qi nvidia <<<"$video" && BASE+=(nvidia-open nvidia-utils)
+if [[ $PERFIL == desktop ]]; then
+  BASE+=("${DESKTOP[@]}")
+  video=$(lspci | grep -iE 'vga|3d|display' || true)
+  grep -qi intel <<<"$video" && BASE+=(vulkan-intel intel-media-driver libva-utils)
+  grep -qiE 'amd|ati' <<<"$video" && BASE+=(vulkan-radeon libva-mesa-driver)
+  grep -qi nvidia <<<"$video" && BASE+=(nvidia-open nvidia-utils)
+fi
 
 # Partições: nvme0n1 -> nvme0n1p1; sda -> sda1.
 if [[ $DISCO =~ [0-9]$ ]]; then PART="/dev/${DISCO}p"; else PART="/dev/${DISCO}"; fi
@@ -130,11 +143,11 @@ mount --mkdir -o fmask=0077,dmask=0077 "${PART}1" /mnt/boot
 
 passo "Instalando os pacotes (demora alguns minutos)"
 sed -i 's/^#Color/Color/; s/^#\?ParallelDownloads.*/ParallelDownloads = 10/' /etc/pacman.conf
-pacstrap -K /mnt "${BASE[@]}" "${GNOME[@]}"
+pacstrap -K /mnt "${BASE[@]}"
 genfstab -U /mnt >>/mnt/etc/fstab
 cp /etc/pacman.conf /mnt/etc/pacman.conf
 
-# Wi-Fi do live ISO (iwd) vira conexão do NetworkManager, para o GNOME já
+# Wi-Fi do live ISO (iwd) vira conexão do NetworkManager, para o sistema já
 # subir conectado. Redes com nome codificado (=hex) ficam de fora.
 for psk in /var/lib/iwd/*.psk; do
   [[ -e $psk ]] || continue
@@ -211,10 +224,21 @@ printf '[Manager]\\nDefaultTimeoutStopSec=15s\\n' >/etc/systemd/user.conf.d/10-d
 # Watchdog não serve num notebook e gasta energia.
 echo 'kernel.nmi_watchdog = 0' >/etc/sysctl.d/10-watchdog.conf
 echo 'blacklist iTCO_wdt' >/etc/modprobe.d/10-watchdog.conf
-# GPU Intel (i915) com mínimo de 600 MHz: as animações não esperam ela acelerar
-# desde 300. Parada, ela desliga (RC6) do mesmo jeito. Outras GPUs não têm o atributo.
-echo 'SUBSYSTEM=="drm", KERNEL=="card[0-9]", ATTR{gt_min_freq_mhz}=="?*", ATTR{gt_min_freq_mhz}="600"' \
-  >/etc/udev/rules.d/99-gpu-intel-minimo.rules
+
+# O pos-instalar.sh lê o perfil daqui.
+echo $PERFIL >/etc/arch-setup-perfil
+if [[ $PERFIL == desktop ]]; then
+  # GPU Intel (i915) com mínimo de 600 MHz: as animações não esperam ela acelerar
+  # desde 300. Parada, ela desliga (RC6) do mesmo jeito. Outras GPUs não têm o atributo.
+  echo 'SUBSYSTEM=="drm", KERNEL=="card[0-9]", ATTR{gt_min_freq_mhz}=="?*", ATTR{gt_min_freq_mhz}="600"' \
+    >/etc/udev/rules.d/99-gpu-intel-minimo.rules
+  systemctl enable gdm bluetooth power-profiles-daemon
+else
+  # Servidor em notebook: fechar a tampa não suspende.
+  mkdir -p /etc/systemd/logind.conf.d
+  printf '[Login]\\nHandleLidSwitch=ignore\\nHandleLidSwitchExternalPower=ignore\\nHandleLidSwitchDocked=ignore\\n' \
+    >/etc/systemd/logind.conf.d/10-tampa.conf
+fi
 
 bootctl install
 # timeout 0: o menu só aparece segurando Espaço no boot (para escolher o LTS).
@@ -226,8 +250,8 @@ for k in linux linux-lts; do
     "\$titulo" \$k \$k $UUID_RAIZ >/boot/loader/entries/\$nome.conf
 done
 
-systemctl enable NetworkManager gdm bluetooth fstrim.timer systemd-boot-update \
-  power-profiles-daemon systemd-oomd paccache.timer reflector.timer fwupd-refresh.timer ufw
+systemctl enable NetworkManager fstrim.timer systemd-boot-update \
+  systemd-oomd paccache.timer reflector.timer fwupd-refresh.timer ufw
 if pacman -Q thermald >/dev/null 2>&1; then systemctl enable thermald; fi
 EOF
 
@@ -246,7 +270,17 @@ passo "Pronto"
 cat <<EOF
 Tire o pendrive e reinicie com: reboot
 
+EOF
+if [[ $PERFIL == desktop ]]; then
+  cat <<EOF
 No GNOME, entre como $USUARIO, abra o Console e rode:
   ./pos-instalar.sh
 Ele instala paru, Claude, Codex, Flutter e o resto das ferramentas.
 EOF
+else
+  cat <<EOF
+No console, entre como $USUARIO e rode:
+  ./pos-instalar.sh
+Ele instala Docker, Tailscale, SSH, Claude Code e Codex.
+EOF
+fi

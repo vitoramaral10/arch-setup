@@ -1,7 +1,8 @@
 # arch-setup
 
-Arch Linux com GNOME enxuto, em duas etapas: o `instalar.sh` roda no live ISO
-oficial e o `pos-instalar.sh` roda no primeiro login.
+Arch Linux em dois perfis, **desktop** (GNOME enxuto) ou **servidor** (sem
+interface gráfica), em duas etapas: o `instalar.sh` roda no live ISO oficial e o
+`pos-instalar.sh` roda no primeiro login.
 
 ## 1. No live ISO (`root@archiso`)
 
@@ -17,8 +18,12 @@ Depois rode:
 curl -fsSL https://raw.githubusercontent.com/vitoramaral10/arch-setup/main/instalar.sh | bash
 ```
 
-O script pergunta o disco, o nome da máquina, o usuário e a senha. Antes de
-apagar o disco, ele pede o nome do disco digitado por extenso.
+O script pergunta o disco, o perfil (`desktop` ou `servidor`), o nome da
+máquina, o usuário e a senha. Antes de apagar o disco, ele pede o nome do disco
+digitado por extenso. O perfil fica gravado em `/etc/arch-setup-perfil`, e o
+`pos-instalar.sh` lê de lá.
+
+Os itens marcados com *(desktop)* ou *(servidor)* valem só naquele perfil.
 
 | Item | Como fica |
 |---|---|
@@ -26,21 +31,22 @@ apagar o disco, ele pede o nome do disco digitado por extenso.
 | Disco | 1 GB EFI em `/boot` (`fmask=0077`) e o resto em ext4, sem partição de swap |
 | Swap | zram com metade da RAM |
 | Rede | NetworkManager, já com o Wi-Fi usado no live ISO |
-| Desktop | GNOME enxuto (sem navegador, loja, mapas, clima, música e leitor de tela) |
-| Áudio | PipeWire (`pipewire-pulse` e `pipewire-jack`) e `sof-firmware` para placas Intel com DSP |
-| Hardware | microcode e driver Vulkan conforme a CPU e a GPU detectadas |
+| Desktop *(desktop)* | GNOME enxuto (sem navegador, loja, mapas, clima, música e leitor de tela) |
+| Áudio *(desktop)* | PipeWire (`pipewire-pulse` e `pipewire-jack`) e `sof-firmware` para placas Intel com DSP |
+| Hardware | microcode conforme a CPU; no desktop, driver Vulkan conforme a GPU |
 | Idioma | `pt_BR.UTF-8`, teclado `br-abnt2`, fuso `America/Sao_Paulo` |
 | Contas | root bloqueado; o seu usuário usa sudo pelo grupo `wheel` |
-| Energia | `power-profiles-daemon` (seletor no GNOME) e `thermald` em CPU Intel |
+| Energia | `thermald` em CPU Intel; no desktop, `power-profiles-daemon` (seletor no GNOME) |
+| Tampa *(servidor)* | fechar a tampa não suspende |
 | Memória | zram com `swappiness=180` e `page-cluster=0`, mais `systemd-oomd` |
 | Manutenção | TRIM semanal, limpeza do cache do pacman, mirrors do Brasil (`reflector`) e firmware (`fwupd`) |
 | Firewall | `ufw` ligado, bloqueando a entrada |
 | Pacotes | pacman com cor e 10 downloads paralelos; `makepkg` com todos os núcleos |
 | Boot e disco | menu do systemd-boot sem espera (segure Espaço para o LTS), raiz com `noatime`, journal até 200 MB, desligamento em até 15 s por serviço, watchdog desligado |
-| GPU Intel | frequência mínima de 600 MHz, para as animações não engasgarem enquanto a GPU acelera |
-| Extras | `bash-completion`, `man`, `tmux`, emoji e CJK nas fontes, VA-API (`intel-media-driver`) para vídeo por hardware |
+| GPU Intel *(desktop)* | frequência mínima de 600 MHz, para as animações não engasgarem enquanto a GPU acelera |
+| Extras | `bash-completion`, `man`, `tmux`; no desktop, emoji e CJK nas fontes e VA-API (`intel-media-driver`) para vídeo por hardware |
 
-## 2. No GNOME, como seu usuário
+## 2. Como seu usuário (no GNOME ou no console do servidor)
 
 ```
 ./pos-instalar.sh
@@ -48,16 +54,16 @@ apagar o disco, ele pede o nome do disco digitado por extenso.
 
 | Etapa | O que faz |
 |---|---|
-| Pacotes | paru, Claude Desktop, Chrome, Codex, LSPs (Go, Python, TypeScript), Node, `jq` |
+| Pacotes | paru, Codex, LSPs (Go, Python, TypeScript), Node, `jq`; no desktop, Claude Desktop e Chrome |
 | Docker | `docker`, `docker compose` e `buildx`, grupo `docker` e logs limitados a 30 MB por container |
-| Cowork | QEMU, OVMF, virtiofsd e grupo `kvm` |
+| Cowork *(desktop)* | QEMU, OVMF, virtiofsd e grupo `kvm` |
 | SSH | `sshd` ligado, com login por senha (root só por chave) e porta 22 com limite de tentativas no `ufw` |
 | Tailscale | `tailscaled` ligado, login pelo link e acesso liberado no `ufw` para a interface `tailscale0` |
 | Claude Code | CLI em `~/.local/bin` e serviço `claude-remote-control` (sessões abertas de claude.ai/code ou do celular, sem suspender com a tampa fechada) |
 | GitHub | `gh` com chave SSH e identidade do git |
 | `~/.claude` | clone do repositório de configuração e agendamento do `claude-config-sync` |
-| Flutter | Flutter e SDK do Android em `~/Android/Sdk`, sem o Android Studio |
-| Visual | tema Orchis claro e escuro, ícones Tela-circle, papel de parede do Orchis e as extensões User Themes, Blur my Shell, Dash to Dock (embaixo) e Just Perfection |
+| Flutter *(desktop)* | Flutter e SDK do Android em `~/Android/Sdk`, sem o Android Studio |
+| Visual *(desktop)* | tema Orchis claro e escuro, ícones Tela-circle, papel de parede do Orchis e as extensões User Themes, Blur my Shell, Dash to Dock (embaixo) e Just Perfection |
 
 O script pode rodar de novo: cada etapa pula o que já está feito. Por padrão, o
 paru mostra cada PKGBUILD do AUR para revisão. Com `REVISAR=0`, essa revisão é
@@ -80,4 +86,4 @@ a diferença, e o `pos-instalar.sh` instala os dois em `~/.local/bin`:
   escuro que o Blur my Shell dá aos menus.
 
 No fim, saia e entre de novo na sessão. Depois rode `claude` (login e plugins)
-e `flutter doctor`.
+e, no desktop, `flutter doctor`.
