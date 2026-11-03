@@ -7,7 +7,8 @@ Rodar de novo depois de cada ./install.sh do Orchis, que sobrescreve os arquivos
   (dialogo Alt+F2, botao Limpar notificacoes, eventos da agenda, indicadores de
   privacidade, tela de desbloqueio...). Sem isso elas aparecem sem estilo nenhum.
 - shell: remove `background-position: center center`, que o St rejeita (o padrao ja centraliza).
-- gtk: troca `var(--accent-bg-color)` em @define-color, que o GTK nao aceita, pelo azul do Orchis.
+- gtk: troca `var(--accent-bg-color)` em @define-color, que o GTK nao aceita, e o
+  `@accent_bg_color` nunca definido pelo azul do Orchis.
 """
 import re
 import sys
@@ -60,6 +61,10 @@ for name in ("gtk.css", "gtk-dark.css"):
         if f.exists():
             t = f.read_text()
             n = re.sub(r"(@define-color [\w-]+ )var\(--accent-bg-color\);", rf"\g<1>{ACCENT};", t)
+            # o tema usa @accent_bg_color/@accent_fg_color sem definir; o accent fica
+            # invalido e o switch ligado (e o que mais usa o accent) some
+            n = re.sub(r"(--accent-(?:bg-)?color: )@accent_bg_color;", rf"\g<1>{ACCENT};", n)
+            n = n.replace("--accent-fg-color: @accent_fg_color;", "--accent-fg-color: white;")
             if n != t:
                 f.write_text(n)
                 print(f"gtk: corrigido {d}/{name}")
