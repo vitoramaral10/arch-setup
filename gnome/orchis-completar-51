@@ -47,6 +47,10 @@ for sel, body in blocks(default):
         body = re.sub(r'url\("?(?!resource:|file:)([^")]+)"?\)', r'url("resource:///org/gnome/shell/theme/\1")', body)
         extra.append(f"{sel.strip()} {{{body}}}")
 
+# O Orchis pinta a caixa de conteudo dos dialogos (polkit, Alt+F2) com cor propria, que
+# no 51 nao bate com o fundo do dialogo e vira um quadro claro no meio dele.
+extra.append(".modal-dialog .modal-dialog-content-box, .prompt-dialog .modal-dialog-content-box { background-color: transparent; }")
+
 SHELL.write_text(shell + "\n" + MARK + "\n" + "\n".join(extra) + "\n")
 print(f"{NAME} shell: {len(missing)} classes sem estilo, {len(extra)} regras do 51 anexadas")
 
