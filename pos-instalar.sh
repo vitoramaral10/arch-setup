@@ -85,6 +85,11 @@ if ! tailscale status >/dev/null 2>&1; then
   sudo tailscale up --operator="$USER" --hostname="$(cat /etc/hostname)"
 fi
 
+# --- GNOME ----------------------------------------------------------------------
+
+gsettings set org.gnome.desktop.interface show-battery-percentage true
+gsettings set org.gnome.desktop.peripherals.touchpad tap-to-click true
+
 # --- Shell ----------------------------------------------------------------------
 
 passo "Variáveis no ~/.bashrc"

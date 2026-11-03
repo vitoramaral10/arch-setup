@@ -28,10 +28,12 @@ GNOME=(
 BASE=(
   base base-devel linux linux-lts linux-firmware
   networkmanager sudo nano git zram-generator
-  pipewire pipewire-pulse pipewire-jack wireplumber
+  pipewire pipewire-pulse pipewire-jack wireplumber sof-firmware
   bluez bluez-utils noto-fonts mesa mesa-utils btop
   # Energia, manutenção automática e firewall
   power-profiles-daemon fwupd pacman-contrib reflector ufw
+  # Conforto no terminal e fontes com emoji e CJK
+  bash-completion man-db man-pages tmux noto-fonts-emoji noto-fonts-cjk
 )
 
 # Toda leitura vem do terminal: com "curl | bash", o stdin é o próprio script.
@@ -91,7 +93,7 @@ case $(grep -m1 vendor_id /proc/cpuinfo) in
   *AuthenticAMD*) BASE+=(amd-ucode) ;;
 esac
 video=$(lspci | grep -iE 'vga|3d|display' || true)
-grep -qi intel <<<"$video" && BASE+=(vulkan-intel intel-media-driver)
+grep -qi intel <<<"$video" && BASE+=(vulkan-intel intel-media-driver libva-utils)
 grep -qiE 'amd|ati' <<<"$video" && BASE+=(vulkan-radeon libva-mesa-driver)
 grep -qi nvidia <<<"$video" && BASE+=(nvidia-open nvidia-utils)
 
@@ -117,7 +119,8 @@ partprobe "/dev/$DISCO"; udevadm settle
 mkfs.fat -F32 -n EFI "${PART}1"
 mkfs.ext4 -F -L raiz "${PART}2"
 
-mount "${PART}2" /mnt
+# noatime: sem escrita no disco a cada leitura de arquivo; o genfstab copia.
+mount -o noatime "${PART}2" /mnt
 # fmask/dmask 0077: o bootctl reclama de /boot com leitura para todos.
 mount --mkdir -o fmask=0077,dmask=0077 "${PART}1" /mnt/boot
 
@@ -198,8 +201,18 @@ printf -- '--country Brazil\n--protocol https\n--latest 10\n--sort rate\n--save 
 # chroot, então o firewall é ligado pelo arquivo de configuração.
 sed -i 's/^ENABLED=no/ENABLED=yes/' /etc/ufw/ufw.conf
 
+mkdir -p /etc/systemd/journald.conf.d /etc/systemd/system.conf.d /etc/systemd/user.conf.d
+printf '[Journal]\\nSystemMaxUse=200M\\n' >/etc/systemd/journald.conf.d/10-tamanho.conf
+# Desligamento: 15 s por serviço em vez de 90.
+printf '[Manager]\\nDefaultTimeoutStopSec=15s\\n' >/etc/systemd/system.conf.d/10-desligamento.conf
+printf '[Manager]\\nDefaultTimeoutStopSec=15s\\n' >/etc/systemd/user.conf.d/10-desligamento.conf
+# Watchdog não serve num notebook e gasta energia.
+echo 'kernel.nmi_watchdog = 0' >/etc/sysctl.d/10-watchdog.conf
+echo 'blacklist iTCO_wdt' >/etc/modprobe.d/10-watchdog.conf
+
 bootctl install
-printf 'default arch.conf\ntimeout 3\n' >/boot/loader/loader.conf
+# timeout 0: o menu só aparece segurando Espaço no boot (para escolher o LTS).
+printf 'default arch.conf\ntimeout 0\n' >/boot/loader/loader.conf
 for k in linux linux-lts; do
   nome=arch; titulo="Arch Linux"
   [[ \$k == linux-lts ]] && nome=arch-lts && titulo="Arch Linux (LTS)"

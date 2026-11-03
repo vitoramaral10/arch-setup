@@ -27,7 +27,7 @@ apagar o disco, ele pede o nome do disco digitado por extenso.
 | Swap | zram com metade da RAM |
 | Rede | NetworkManager, já com o Wi-Fi usado no live ISO |
 | Desktop | GNOME enxuto (sem navegador, loja, mapas, clima, música e leitor de tela) |
-| Áudio | PipeWire (`pipewire-pulse` e `pipewire-jack`) |
+| Áudio | PipeWire (`pipewire-pulse` e `pipewire-jack`) e `sof-firmware` para placas Intel com DSP |
 | Hardware | microcode e driver Vulkan conforme a CPU e a GPU detectadas |
 | Idioma | `pt_BR.UTF-8`, teclado `br-abnt2`, fuso `America/Sao_Paulo` |
 | Contas | root bloqueado; o seu usuário usa sudo pelo grupo `wheel` |
@@ -36,6 +36,8 @@ apagar o disco, ele pede o nome do disco digitado por extenso.
 | Manutenção | TRIM semanal, limpeza do cache do pacman, mirrors do Brasil (`reflector`) e firmware (`fwupd`) |
 | Firewall | `ufw` ligado, bloqueando a entrada |
 | Pacotes | pacman com cor e 10 downloads paralelos; `makepkg` com todos os núcleos |
+| Boot e disco | menu do systemd-boot sem espera (segure Espaço para o LTS), raiz com `noatime`, journal até 200 MB, desligamento em até 15 s por serviço, watchdog desligado |
+| Extras | `bash-completion`, `man`, `tmux`, emoji e CJK nas fontes, VA-API (`intel-media-driver`) para vídeo por hardware |
 
 ## 2. No GNOME, como seu usuário
 
