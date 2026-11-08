@@ -174,6 +174,8 @@ if [[ $PERFIL == desktop ]]; then
     ext_set dash-to-dock@micxgx.gmail.com org.gnome.shell.extensions.dash-to-dock dock-position BOTTOM
     ext_set dash-to-dock@micxgx.gmail.com org.gnome.shell.extensions.dash-to-dock dash-max-icon-size 40
     ext_set dash-to-dock@micxgx.gmail.com org.gnome.shell.extensions.dash-to-dock intellihide true
+    # O padrão (FOCUS_APPLICATION_WINDOWS) deixa o dock por cima de janela de outro app.
+    ext_set dash-to-dock@micxgx.gmail.com org.gnome.shell.extensions.dash-to-dock intellihide-mode ALL_WINDOWS
     ext_set dash-to-dock@micxgx.gmail.com org.gnome.shell.extensions.dash-to-dock show-trash false
     ext_set dash-to-dock@micxgx.gmail.com org.gnome.shell.extensions.dash-to-dock show-mounts false
   fi
