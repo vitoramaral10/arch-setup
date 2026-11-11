@@ -28,8 +28,8 @@ Os itens marcados com *(desktop)* ou *(servidor)* valem só naquele perfil.
 | Item | Como fica |
 |---|---|
 | Boot | UEFI (BIOS legacy não é suportada) e systemd-boot com entradas `linux` e `linux-lts` |
-| Disco | 1 GB EFI em `/boot` (`fmask=0077`) e o resto em ext4, sem partição de swap |
-| Swap | zram com metade da RAM |
+| Disco | GPT com 1 GiB EFI em `/boot` (`fmask=0077`), 80 GiB de raiz, swap do tamanho da RAM, 16 GiB de `/tmp` (`nosuid,nodev`) e o resto em `/home` (`nodev`), tudo em ext4 |
+| Swap | zram com metade da RAM na frente; a partição de swap fica com prioridade menor e serve para hibernar (`systemctl hibernate`) |
 | Rede | NetworkManager, já com o Wi-Fi usado no live ISO |
 | Desktop *(desktop)* | GNOME enxuto (sem navegador, loja, mapas, clima, música e leitor de tela) |
 | Áudio *(desktop)* | PipeWire (`pipewire-pulse` e `pipewire-jack`) e `sof-firmware` para placas Intel com DSP |

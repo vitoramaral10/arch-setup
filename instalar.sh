@@ -115,6 +115,15 @@ fi
 # Partições: nvme0n1 -> nvme0n1p1; sda -> sda1.
 if [[ $DISCO =~ [0-9]$ ]]; then PART="/dev/${DISCO}p"; else PART="/dev/${DISCO}"; fi
 
+# Tamanhos em GiB. A swap tem o tamanho da RAM, para caber a hibernação.
+RAIZ_GB=80
+TMP_GB=16
+SWAP_GB=$(awk '/MemTotal/{print int(($2 + 1048575) / 1048576)}' /proc/meminfo)
+disco_gb=$(( $(blockdev --getsize64 "/dev/$DISCO") / 1024**3 ))
+minimo_gb=$(( 1 + RAIZ_GB + SWAP_GB + TMP_GB + 20 ))
+(( disco_gb >= minimo_gb )) \
+  || erro "/dev/$DISCO tem ${disco_gb} GiB; o layout pede pelo menos ${minimo_gb} GiB (com 20 GiB de /home)."
+
 echo
 lsblk -o NAME,SIZE,FSTYPE,LABEL,MOUNTPOINTS "/dev/$DISCO"
 echo
@@ -124,20 +133,37 @@ perguntar CONFIRMA "Digite o nome do disco ($DISCO) para confirmar"
 
 # --- Disco --------------------------------------------------------------------
 
-passo "Particionando /dev/$DISCO (1 GB EFI + raiz ext4)"
+passo "Particionando /dev/$DISCO (EFI, raiz, swap, /tmp e /home)"
 umount -R /mnt 2>/dev/null || true
+swapoff -a 2>/dev/null || true
 wipefs -af "/dev/$DISCO"
 sgdisk --zap-all "/dev/$DISCO"
-sgdisk -n1:0:+1G -t1:ef00 -c1:EFI -n2:0:0 -t2:8304 -c2:raiz "/dev/$DISCO"
+# Os tipos GPT (8304 raiz, 8200 swap, 8300 /tmp, 8302 /home) deixam o
+# systemd reconhecer cada partição pelo papel.
+sgdisk \
+  -n1:0:+1G -t1:ef00 -c1:EFI \
+  -n2:0:+${RAIZ_GB}G -t2:8304 -c2:raiz \
+  -n3:0:+${SWAP_GB}G -t3:8200 -c3:swap \
+  -n4:0:+${TMP_GB}G -t4:8300 -c4:tmp \
+  -n5:0:0 -t5:8302 -c5:home \
+  "/dev/$DISCO"
 partprobe "/dev/$DISCO"; udevadm settle
 
 mkfs.fat -F32 -n EFI "${PART}1"
 mkfs.ext4 -F -L raiz "${PART}2"
+mkswap -L swap "${PART}3"
+mkfs.ext4 -F -L tmp "${PART}4"
+mkfs.ext4 -F -L home "${PART}5"
 
-# noatime: sem escrita no disco a cada leitura de arquivo; o genfstab copia.
+# As opções de montagem vão para o fstab pelo genfstab.
+# noatime: sem escrita no disco a cada leitura de arquivo.
 mount -o noatime "${PART}2" /mnt
 # fmask/dmask 0077: o bootctl reclama de /boot com leitura para todos.
 mount --mkdir -o fmask=0077,dmask=0077 "${PART}1" /mnt/boot
+# /tmp sem setuid nem dispositivos; o 1777 vale para a raiz do ext4 novo.
+mount --mkdir -o noatime,nosuid,nodev "${PART}4" /mnt/tmp
+chmod 1777 /mnt/tmp
+mount --mkdir -o noatime,nodev "${PART}5" /mnt/home
 
 # --- Pacotes ------------------------------------------------------------------
 
@@ -145,6 +171,9 @@ passo "Instalando os pacotes (demora alguns minutos)"
 sed -i 's/^#Color/Color/; s/^#\?ParallelDownloads.*/ParallelDownloads = 10/' /etc/pacman.conf
 pacstrap -K /mnt "${BASE[@]}"
 genfstab -U /mnt >>/mnt/etc/fstab
+# A swap entra à mão: o genfstab só lista a ativa, e o live ISO pode ter outras.
+# pri=0 fica abaixo do zram (100): o disco só recebe o que o zram não couber e a hibernação.
+printf 'UUID=%s none swap defaults,pri=0 0 0\n' "$(blkid -s UUID -o value "${PART}3")" >>/mnt/etc/fstab
 cp /etc/pacman.conf /mnt/etc/pacman.conf
 
 # Wi-Fi do live ISO (iwd) vira conexão do NetworkManager, para o sistema já
@@ -182,6 +211,7 @@ done
 
 passo "Configurando fuso, idioma, usuário e boot"
 UUID_RAIZ=$(blkid -s UUID -o value "${PART}2")
+UUID_SWAP=$(blkid -s UUID -o value "${PART}3")
 
 arch-chroot /mnt /bin/bash -euo pipefail <<EOF
 ln -sf /usr/share/zoneinfo/$FUSO /etc/localtime
@@ -246,8 +276,9 @@ printf 'default arch.conf\ntimeout 0\n' >/boot/loader/loader.conf
 for k in linux linux-lts; do
   nome=arch; titulo="Arch Linux"
   [[ \$k == linux-lts ]] && nome=arch-lts && titulo="Arch Linux (LTS)"
-  printf 'title %s\nlinux /vmlinuz-%s\ninitrd /initramfs-%s.img\noptions root=UUID=%s rw\n' \
-    "\$titulo" \$k \$k $UUID_RAIZ >/boot/loader/entries/\$nome.conf
+  # resume: o initramfs (hook systemd, padrão do mkinitcpio) volta da hibernação por esta swap.
+  printf 'title %s\nlinux /vmlinuz-%s\ninitrd /initramfs-%s.img\noptions root=UUID=%s resume=UUID=%s rw\n' \
+    "\$titulo" \$k \$k $UUID_RAIZ $UUID_SWAP >/boot/loader/entries/\$nome.conf
 done
 
 systemctl enable NetworkManager fstrim.timer systemd-boot-update \
