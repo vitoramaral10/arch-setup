@@ -30,8 +30,9 @@ live ISO oficial e `pos-instalar.sh` roda como o usuário no primeiro login. O
 
 ## Decisões que não devem voltar
 
-- Disco: EFI 1 GiB, raiz 80 GiB, swap do tamanho da RAM, `/tmp` 16 GiB
-  (`nosuid,nodev`) e `/home` com o resto (`nodev`), tudo ext4.
+- Disco: os tamanhos acompanham a máquina, nunca valores fixos. EFI 1 GiB, raiz
+  com 15% do disco (40 a 120 GiB), swap do tamanho da RAM, `/tmp` com 3% do disco
+  (4 a 16 GiB, `nosuid,nodev`) e `/home` com o resto (`nodev`), tudo ext4.
 - O `/tmp` é a partição do `fstab`. Não mascare o `tmp.mount`: a máscara em
   `/etc/systemd/system` também esconde a montagem gerada pelo `fstab`.
 - O zram (prioridade 100) fica na frente; a swap de disco tem `pri=0` e serve

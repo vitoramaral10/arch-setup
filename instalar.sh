@@ -115,17 +115,22 @@ fi
 # Partições: nvme0n1 -> nvme0n1p1; sda -> sda1.
 if [[ $DISCO =~ [0-9]$ ]]; then PART="/dev/${DISCO}p"; else PART="/dev/${DISCO}"; fi
 
-# Tamanhos em GiB. A swap tem o tamanho da RAM, para caber a hibernação.
-RAIZ_GB=80
-TMP_GB=16
-SWAP_GB=$(awk '/MemTotal/{print int(($2 + 1048575) / 1048576)}' /proc/meminfo)
+# Tamanhos em GiB, pelo disco e pela RAM desta máquina. A raiz e o /tmp são uma
+# fatia do disco com piso e teto; a swap tem o tamanho da RAM, para caber a
+# hibernação; o /home fica com o resto.
+limitar() { local v=$1; (( v < $2 )) && v=$2; (( v > $3 )) && v=$3; echo "$v"; } # limitar valor min max
 disco_gb=$(( $(blockdev --getsize64 "/dev/$DISCO") / 1024**3 ))
-minimo_gb=$(( 1 + RAIZ_GB + SWAP_GB + TMP_GB + 20 ))
-(( disco_gb >= minimo_gb )) \
-  || erro "/dev/$DISCO tem ${disco_gb} GiB; o layout pede pelo menos ${minimo_gb} GiB (com 20 GiB de /home)."
+RAIZ_GB=$(limitar $(( disco_gb * 15 / 100 )) 40 120)
+TMP_GB=$(limitar $(( disco_gb * 3 / 100 )) 4 16)
+SWAP_GB=$(awk '/MemTotal/{print int(($2 + 1048575) / 1048576)}' /proc/meminfo)
+HOME_GB=$(( disco_gb - 1 - RAIZ_GB - SWAP_GB - TMP_GB ))
+(( HOME_GB >= 20 )) \
+  || erro "/dev/$DISCO tem ${disco_gb} GiB; sobrariam ${HOME_GB} GiB para o /home (mínimo 20)."
 
 echo
 lsblk -o NAME,SIZE,FSTYPE,LABEL,MOUNTPOINTS "/dev/$DISCO"
+echo
+echo "Partições: EFI 1 GiB, raiz ${RAIZ_GB} GiB, swap ${SWAP_GB} GiB, /tmp ${TMP_GB} GiB, /home ~${HOME_GB} GiB."
 echo
 echo "TUDO em /dev/$DISCO será apagado. Isso não tem volta."
 perguntar CONFIRMA "Digite o nome do disco ($DISCO) para confirmar"

@@ -28,7 +28,7 @@ Os itens marcados com *(desktop)* ou *(servidor)* valem só naquele perfil.
 | Item | Como fica |
 |---|---|
 | Boot | UEFI (BIOS legacy não é suportada) e systemd-boot com entradas `linux` e `linux-lts` |
-| Disco | GPT com 1 GiB EFI em `/boot` (`fmask=0077`), 80 GiB de raiz, swap do tamanho da RAM, 16 GiB de `/tmp` (`nosuid,nodev`) e o resto em `/home` (`nodev`), tudo em ext4 |
+| Disco | GPT com 1 GiB EFI em `/boot` (`fmask=0077`), raiz com 15% do disco (de 40 a 120 GiB), swap do tamanho da RAM, `/tmp` com 3% do disco (de 4 a 16 GiB, `nosuid,nodev`) e o resto em `/home` (`nodev`, mínimo 20 GiB), tudo em ext4; o script mostra os tamanhos antes de apagar |
 | Swap | zram com metade da RAM na frente; a partição de swap fica com prioridade menor e serve para hibernar (`systemctl hibernate`) |
 | Rede | NetworkManager, já com o Wi-Fi usado no live ISO |
 | Desktop *(desktop)* | GNOME enxuto (sem navegador, loja, mapas, clima, música e leitor de tela) |
