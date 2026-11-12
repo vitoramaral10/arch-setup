@@ -269,16 +269,16 @@ fi
 
 # Sessões do Claude neste notebook, abertas de claude.ai/code ou do celular.
 # Fica habilitado mas parado: antes ele precisa do login do CLI e da confiança
-# em ~/projects, as duas coisas feitas à mão no fim.
+# em ~/Projetos, as duas coisas feitas à mão no fim.
 passo "Serviço claude-remote-control"
-mkdir -p ~/projects ~/.config/systemd/user
+mkdir -p ~/Projetos ~/.config/systemd/user
 cat >~/.config/systemd/user/claude-remote-control.service <<'EOF'
 [Unit]
 Description=Claude Remote Control
 After=network-online.target
 
 [Service]
-WorkingDirectory=%h/projects
+WorkingDirectory=%h/Projetos
 # Sem dormir enquanto o serviço estiver no ar: tampa fechada não suspende.
 ExecStart=/usr/bin/systemd-inhibit --what=sleep:handle-lid-switch --mode=block --who=claude-remote-control --why="acesso remoto" %h/.local/bin/claude remote-control --permission-mode auto
 Restart=always
@@ -300,7 +300,7 @@ else
 fi
 cat <<'EOF'
 Depois:
-  cd ~/projects && claude   # login, plugins e confiança na pasta (/exit no fim)
+  cd ~/Projetos && claude   # login, plugins e confiança na pasta (/exit no fim)
   claude remote-control     # responda y, espere a sessão subir e saia com Ctrl+C
   systemctl --user start claude-remote-control
 EOF
