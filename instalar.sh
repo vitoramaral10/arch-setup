@@ -286,7 +286,7 @@ for k in linux linux-lts; do
     "\$titulo" \$k \$k $UUID_RAIZ $UUID_SWAP >/boot/loader/entries/\$nome.conf
 done
 
-systemctl enable NetworkManager fstrim.timer systemd-boot-update \
+systemctl enable NetworkManager systemd-timesyncd fstrim.timer systemd-boot-update \
   systemd-oomd paccache.timer reflector.timer fwupd-refresh.timer ufw
 if pacman -Q thermald >/dev/null 2>&1; then systemctl enable thermald; fi
 EOF
