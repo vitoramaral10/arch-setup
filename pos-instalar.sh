@@ -107,6 +107,9 @@ fi
 if [[ $PERFIL == desktop ]]; then
   gsettings set org.gnome.desktop.interface show-battery-percentage true
   gsettings set org.gnome.desktop.peripherals.touchpad tap-to-click true
+  # Parado 10 min: apaga a tela e bloqueia (o bloqueio imediato é o padrão), sem suspender na tomada.
+  gsettings set org.gnome.desktop.session idle-delay 600
+  gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type nothing
 
   # --- Visual do GNOME: Orchis --------------------------------------------------
 

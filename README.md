@@ -36,7 +36,7 @@ Os itens marcados com *(desktop)* ou *(servidor)* valem só naquele perfil.
 | Hardware | microcode conforme a CPU; no desktop, driver Vulkan conforme a GPU |
 | Idioma | `pt_BR.UTF-8`, teclado `br-abnt2`, fuso `America/Sao_Paulo` |
 | Contas | root bloqueado; o seu usuário usa sudo pelo grupo `wheel` |
-| Energia | `thermald` em CPU Intel; no desktop, `power-profiles-daemon` (seletor no GNOME) |
+| Energia | `thermald` em CPU Intel; no desktop, `power-profiles-daemon` (seletor no GNOME) e, com 10 min parado, tela apagada e sessão bloqueada, sem suspender na tomada |
 | Tampa *(servidor)* | fechar a tampa não suspende |
 | Memória | zram com `swappiness=180` e `page-cluster=0`, mais `systemd-oomd` |
 | Manutenção | TRIM semanal, limpeza do cache do pacman, mirrors do Brasil (`reflector`) e firmware (`fwupd`) |
